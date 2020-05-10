@@ -1,4 +1,4 @@
-from flask import Flask, flash, request, redirect, url_for
+from flask import Flask, flash, request, redirect, url_for, render_template
 import flask
 import os
 from werkzeug.utils import secure_filename
@@ -18,7 +18,7 @@ ALLOWED_EXTENSIONS = {'jpg'}
 
 @app.route('/', methods=['GET'])
 def home():
-    return "<h1>Sistema de Reconhecimento Facial</h1><p>Projeto inicial de um sistema de reconhecimento facil.</p>"
+    return render_template('home.html')
 
 @app.route('/listar', methods=['GET'])
 def listar():
@@ -39,41 +39,27 @@ def allowed_file(filename):
 @app.route('/armazenar', methods=['GET', 'POST'])
 def upload_file():
     if request.method == 'POST':
-        # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
             return redirect(request.url)
         arquivo = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
         if arquivo.filename == '':
             flash('No selected file')
             return redirect(request.url)
         if arquivo and allowed_file(arquivo.filename):
             filename = secure_filename(arquivo.filename)
             arquivo.save(os.path.join('faces/', filename))
-            return 'arquivo armazenado'
+            return 'Arquivo armazenado!'
             
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+    return render_template('armazenar.html')
 
 @app.route('/comparar', methods=['GET', 'POST'])
 def comparar_file():
     if request.method == 'POST':
-        # check if the post request has the file part
         if 'file' not in request.files:
             flash('No file part')
             return redirect(request.url)
         arquivo = request.files['file']
-        # if user does not select file, browser also
-        # submit an empty part without filename
         if arquivo.filename == '':
             flash('No selected file')
             return redirect(request.url)
@@ -90,14 +76,8 @@ def comparar_file():
                 results = face_recognition.compare_faces([facec],faced)
                 resultado.update({value:results})
             return str(resultado)
-    return '''
-    <!doctype html>
-    <title>Upload new File</title>
-    <h1>Upload new File</h1>
-    <form method=post enctype=multipart/form-data>
-      <input type=file name=file>
-      <input type=submit value=Upload>
-    </form>
-    '''
+            
+    return render_template('comparar.html')
+
 
 app.run()
