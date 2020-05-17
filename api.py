@@ -6,7 +6,7 @@ from os import listdir
 from os.path import isfile, join
 import json
 import face_recognition
-
+import numpy as np
 
 app = flask.Flask(__name__)
 app.debug = True
@@ -21,13 +21,23 @@ def home():
     return render_template('home.html')
 
 @app.route('/listar', methods=['GET'])
-def listar():
+def listar(nomes = None):
+    mypath ='faces'
+    data = []
+    i = 0
+    onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
+    for files in onlyfiles:
+        files = files.replace('.npy','')
+        data.append(files)
+    return render_template('lista.html', nomes = data)
+
+def listar2():
     mypath ='faces'
     data = {}
     i = 0
     onlyfiles = [f for f in listdir(mypath) if isfile(join(mypath, f))]
     for files in onlyfiles:
-        files = files.replace('.jpg','')
+        files = files.replace('.npy','')
         data.update({i:files})
         i = i+1
     return data
@@ -40,42 +50,39 @@ def allowed_file(filename):
 def upload_file():
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
             return redirect(request.url)
         arquivo = request.files['file']
         if arquivo.filename == '':
-            flash('No selected file')
             return redirect(request.url)
         if arquivo and allowed_file(arquivo.filename):
             filename = secure_filename(arquivo.filename)
-            arquivo.save(os.path.join('faces/', filename))
-            return 'Arquivo armazenado!'
+            known_image = face_recognition.load_image_file(arquivo)
+            know_encoding = face_recognition.face_encodings(known_image)[0]
+            filename = filename.replace('jpg','npy')
+            np.save(os.path.join('faces/', filename),know_encoding)
+            return render_template('armazenado.html')
             
     return render_template('armazenar.html')
 
 @app.route('/comparar', methods=['GET', 'POST'])
-def comparar_file():
+def comparar_file(nome = None):
     if request.method == 'POST':
         if 'file' not in request.files:
-            flash('No file part')
             return redirect(request.url)
         arquivo = request.files['file']
         if arquivo.filename == '':
-            flash('No selected file')
             return redirect(request.url)
         if arquivo and allowed_file(arquivo.filename):
             filename = secure_filename(arquivo.filename)
-            arquivo.save(os.path.join('comparar/', filename))
-            imgd = face_recognition.load_image_file('comparar/'+filename)
+            imgd = face_recognition.load_image_file(arquivo)
             faced = face_recognition.face_encodings(imgd)[0]
-            imgcs = listar()
-            resultado = {}
+            imgcs = listar2()
             for key, value in imgcs.items():
-                imgc = face_recognition.load_image_file('faces/'+value+'.jpg')
-                facec = face_recognition.face_encodings(imgc)[0]
+                facec = np.load('faces/'+value+'.npy')
                 results = face_recognition.compare_faces([facec],faced)
-                resultado.update({value:results})
-            return str(resultado)
+                if (results[0] == True):
+                    return render_template('confirmado.html', nome = value)
+            return render_template('negado.html')
             
     return render_template('comparar.html')
 

@@ -1,0 +1,9 @@
+<!doctype html>
+<title>FaceReact</title>
+<h1>Pessoas cadastradas no sistema:</h1>
+<ul>
+    {% for nome in nomes %}
+      <li><a>{{ nome }}</a></li>
+    {% endfor %}
+</ul>
+<a href="/" class="button">Retornar</a>
